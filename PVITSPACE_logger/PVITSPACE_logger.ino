@@ -1,4 +1,4 @@
-// GPS, OAtemperature, and Geiger counter data logger for PVIT Space Balloon, 2017
+// GPS, temperature, and Geiger counter data logger for PVIT Space Balloon, 2017
 //
 // This is a modified version of the 2016 balloon software, gps-ultrasonic-log-3.2.ino, with
 // - xBee transmission removed - data is just captured to SD card
