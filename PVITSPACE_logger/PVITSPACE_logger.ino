@@ -12,7 +12,7 @@
 byte THeaterPin = A0;            // Temperature sensor inside heater area 
 byte TSpacePin = A1;             // Temperature sensor outside environment
 byte relayPin = 5;               // Heater relay
-SoftwareSerial mySerial(8, 7);   // TODO - move this if ATMega (no Software Serial on 7,8)
+SoftwareSerial mySerial(19,18);  // GPS Serial
 Adafruit_GPS GPS(&mySerial);
 
 // Set up GPS device
@@ -21,8 +21,12 @@ Adafruit_GPS GPS(&mySerial);
 boolean usingInterrupt = false;  // not currently using an interrupt
 void useInterrupt(boolean);      // Func prototype keeps Arduino 0023 happy
 
-// Set the pins used
-#define chipSelect 10
+// Geiger counters
+SoftwareSerial geiger1(15,14);   // Geiger counter #1
+SoftwareSerial geiger2(17,16);   // Geiger counter #2
+
+// Miscellaneous Pins
+#define chipSelect 10            // Chipselect Pin (TODO verify this for ATMega)
 #define ledPin 13
 
 File logfile;
@@ -108,6 +112,10 @@ void setup() {
 
   useInterrupt(true); // use interrupts to read GPS data
 
+  // Start the Gieger counter ports
+  geiger1.begin(9600);
+  geiger2.begin(9600);
+  
   Serial.println("Ready!");
 }
 
@@ -188,6 +196,18 @@ void loop() {
     if (strstr(stringptr, "RMC") || strstr(stringptr, "GGA"))
       logfile.flush();
   }
+
+  // Get the gieger counter data
+  int geiger1count = 0;
+  int geiger2count = 0;
+  while (geiger1.available()) {
+    char c = geiger1.read();
+    geiger1count++;
+  }
+  while (geiger2.available()) {
+    char c = geiger2.read();
+    geiger2count++;
+  }
   
   // Log the time and temperature data
   String hourStr =  String(GPS.hour, DEC);
@@ -195,12 +215,14 @@ void loop() {
   String secondStr =  String(GPS.seconds, DEC); 
   String tempSpace = String(tempSensor(TSpacePin), DEC);
   String tempHeater = String(tempSensor(THeaterPin), DEC);
-  String logStr = hourStr+":"+minuteStr+":"+secondStr+" -> "+tempSpace+","+tempHeater;
+  String geiger1str = String(geiger1count, DEC);
+  String geiger2str = String(geiger2count, DEC);
+  String logStr = hourStr+":"+minuteStr+":"+secondStr+" -> "+tempSpace+","+tempHeater+","+geiger1str+","+geiger2str;
   char charBuf[50];
   logStr.toCharArray(charBuf, 50); 
   logfile.write(charBuf);
 
-  delay(1900);  // slow down logging rate
+  delay(1900);  // slow down logging rate   TODO: re-architect this if geiger buffer overflows
 
   float heaterTemp = tempSensor(THeaterPin);
   if (heaterTemp <= 22.0) {
